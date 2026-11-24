@@ -1,0 +1,6 @@
+{
+  "name": "بنك السودان الرقمي",
+  "description": "منصة الخدمات المصرفية الرقمية الموحدة في السودان بنظام حساب واحد = وجه واحد، المصادقة البيومترية، والتحويلات الفورية عبر شبكة BBAN.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

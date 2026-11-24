@@ -1,0 +1,273 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedCitizen() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.phone_number != null
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          request.auth.token.email == 'tij24m@gmail.com' &&
+          request.auth.token.email_verified == true
+        )
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidBankAccount(data) {
+      return data.keys().hasAll([
+        'uid', 'fullName', 'nationalId', 'documentType', 'phone', 'email',
+        'accountNumber', 'iban', 'balance', 'pinHash', 'faceVectorHash',
+        'faceVectorLength', 'boundDeviceId', 'boundDeviceName', 'status',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'fullName', 'nationalId', 'documentType', 'phone', 'email',
+        'accountNumber', 'iban', 'balance', 'pinHash', 'faceVectorHash',
+        'faceVectorLength', 'boundDeviceId', 'boundDeviceName', 'status',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+      data.fullName is string && data.fullName.size() >= 3 && data.fullName.size() <= 100 &&
+      data.nationalId is string && data.nationalId.size() >= 6 && data.nationalId.size() <= 20 &&
+      data.documentType is string && data.documentType in ['national_id', 'passport'] &&
+      data.phone is string && data.phone.size() == 13 && data.phone.matches('^\\+249[0-9]{9}$') &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+      data.accountNumber is string && data.accountNumber.size() >= 10 && data.accountNumber.size() <= 24 &&
+      data.iban is string && data.iban.size() >= 16 && data.iban.size() <= 34 &&
+      data.balance is number && data.balance >= 0 &&
+      data.pinHash is string && data.pinHash.size() >= 8 && data.pinHash.size() <= 128 &&
+      data.faceVectorHash is string && data.faceVectorHash.size() >= 8 && data.faceVectorHash.size() <= 128 &&
+      data.faceVectorLength is int && data.faceVectorLength == 512 &&
+      data.boundDeviceId is string && data.boundDeviceId.size() >= 4 && data.boundDeviceId.size() <= 64 &&
+      data.boundDeviceName is string && data.boundDeviceName.size() >= 2 && data.boundDeviceName.size() <= 80 &&
+      data.status is string && data.status in ['active', 'frozen'] &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidFaceRegistry(data) {
+      return data.keys().hasAll(['faceVectorHash', 'nationalIdHash', 'ownerUid', 'createdAt']) &&
+        data.keys().hasOnly(['faceVectorHash', 'nationalIdHash', 'ownerUid', 'createdAt']) &&
+        data.faceVectorHash is string && data.faceVectorHash.size() >= 8 && data.faceVectorHash.size() <= 128 &&
+        data.nationalIdHash is string && data.nationalIdHash.size() >= 8 && data.nationalIdHash.size() <= 128 &&
+        data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidBankTransfer(data) {
+      return data.keys().hasAll([
+        'senderUid', 'senderName', 'senderAccount', 'receiverName',
+        'receiverAccount', 'receiverBankCode', 'receiverBankName',
+        'channel', 'routeType', 'amount', 'fee', 'reference',
+        'faceVerified', 'status', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'senderUid', 'senderName', 'senderAccount', 'receiverName',
+        'receiverAccount', 'receiverBankCode', 'receiverBankName',
+        'channel', 'routeType', 'amount', 'fee', 'reference',
+        'faceVerified', 'status', 'createdAt'
+      ]) &&
+      data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+      data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 100 &&
+      data.senderAccount is string && data.senderAccount.size() >= 8 && data.senderAccount.size() <= 34 &&
+      data.receiverName is string && data.receiverName.size() >= 2 && data.receiverName.size() <= 100 &&
+      data.receiverAccount is string && data.receiverAccount.size() >= 8 && data.receiverAccount.size() <= 34 &&
+      data.receiverBankCode is string && data.receiverBankCode.size() >= 2 && data.receiverBankCode.size() <= 16 &&
+      data.receiverBankName is string && data.receiverBankName.size() >= 2 && data.receiverBankName.size() <= 100 &&
+      data.channel is string && data.channel in ['QR', 'NFC', 'IBAN', 'OFFLINE_QUEUE', 'BILL'] &&
+      data.routeType is string && data.routeType in ['CBOS_INSTANT', 'CENTRAL_BANK_SWITCH'] &&
+      data.amount is number && data.amount > 0 &&
+      data.fee is number && data.fee >= 0 &&
+      data.reference is string && data.reference.size() >= 4 && data.reference.size() <= 32 &&
+      data.faceVerified is bool &&
+      data.status is string && data.status in ['completed', 'queued_offline'] &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidWeeklyStatement(data) {
+      return data.keys().hasAll([
+        'ownerUid', 'weekLabel', 'periodStart', 'periodEnd',
+        'openingBalance', 'closingBalance', 'transactionCount', 'issuedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerUid', 'weekLabel', 'periodStart', 'periodEnd',
+        'openingBalance', 'closingBalance', 'transactionCount', 'issuedAt'
+      ]) &&
+      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+      data.weekLabel is string && data.weekLabel.size() >= 4 && data.weekLabel.size() <= 80 &&
+      data.periodStart is string && data.periodStart.size() >= 4 && data.periodStart.size() <= 32 &&
+      data.periodEnd is string && data.periodEnd.size() >= 4 && data.periodEnd.size() <= 32 &&
+      data.openingBalance is number &&
+      data.closingBalance is number &&
+      data.transactionCount is int && data.transactionCount >= 0 &&
+      data.issuedAt is timestamp;
+    }
+
+    function isValidFraudAlert(data) {
+      return data.keys().hasAll(['actorUid', 'reason', 'channel', 'createdAt']) &&
+        data.keys().hasOnly(['actorUid', 'reason', 'channel', 'createdAt']) &&
+        data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+        data.reason is string && data.reason.size() >= 4 && data.reason.size() <= 160 &&
+        data.channel is string && data.channel.size() >= 2 && data.channel.size() <= 40 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidDispatchLog(data) {
+      return data.keys().hasAll(['ownerUid', 'kind', 'recipient', 'subject', 'body', 'createdAt']) &&
+        data.keys().hasOnly(['ownerUid', 'kind', 'recipient', 'subject', 'body', 'createdAt']) &&
+        data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+        data.kind is string && data.kind in ['SMS', 'EMAIL'] &&
+        data.recipient is string && data.recipient.size() >= 3 && data.recipient.size() <= 120 &&
+        data.subject is string && data.subject.size() >= 2 && data.subject.size() <= 140 &&
+        data.body is string && data.body.size() >= 2 && data.body.size() <= 600 &&
+        data.createdAt is timestamp;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /accounts/{accountId} {
+      allow get: if isSignedIn() && isValidId(accountId) && (
+        request.auth.uid == accountId || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.uid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedCitizen() &&
+        isValidId(accountId) &&
+        accountId == request.auth.uid &&
+        isValidBankAccount(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedCitizen() &&
+        isValidId(accountId) &&
+        isValidBankAccount(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().nationalId == existing().nationalId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            request.auth.uid == accountId &&
+            (
+              incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'updatedAt']) ||
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+              incoming().diff(existing()).affectedKeys().hasOnly(['boundDeviceId', 'boundDeviceName', 'updatedAt'])
+            )
+          )
+        );
+      allow delete: if false;
+    }
+
+    match /faceRegistry/{faceKey} {
+      allow get: if isSignedIn() && isValidId(faceKey);
+      allow list: if isAdmin();
+      allow create: if isVerifiedCitizen() &&
+        isValidId(faceKey) &&
+        isValidFaceRegistry(incoming()) &&
+        incoming().ownerUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /transfers/{transferId} {
+      allow get: if isSignedIn() && isValidId(transferId) && (
+        resource.data.senderUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.senderUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedCitizen() &&
+        isValidId(transferId) &&
+        isValidBankTransfer(incoming()) &&
+        incoming().senderUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if isVerifiedCitizen() &&
+        isValidId(transferId) &&
+        isValidBankTransfer(incoming()) &&
+        incoming().senderUid == existing().senderUid &&
+        incoming().createdAt == existing().createdAt &&
+        (
+          isAdmin() ||
+          (
+            existing().senderUid == request.auth.uid &&
+            existing().status == 'queued_offline' &&
+            incoming().status == 'completed' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          )
+        );
+      allow delete: if false;
+    }
+
+    match /statements/{statementId} {
+      allow get: if isSignedIn() && isValidId(statementId) && (
+        resource.data.ownerUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedCitizen() &&
+        isValidId(statementId) &&
+        isValidWeeklyStatement(incoming()) &&
+        incoming().ownerUid == request.auth.uid &&
+        incoming().issuedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /fraudAlerts/{alertId} {
+      allow get: if isAdmin() && isValidId(alertId);
+      allow list: if isAdmin();
+      allow create: if isVerifiedCitizen() &&
+        isValidId(alertId) &&
+        isValidFraudAlert(incoming()) &&
+        incoming().actorUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /notificationsLog/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (
+        resource.data.ownerUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.ownerUid == request.auth.uid || isAdmin()
+      );
+      allow create: if isVerifiedCitizen() &&
+        isValidId(logId) &&
+        isValidDispatchLog(incoming()) &&
+        incoming().ownerUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

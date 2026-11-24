@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Cairo', system-ui, -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --bg-canvas: #F4F7F5;
+    --bg-surface: #FFFFFF;
+    --bg-surface-muted: #EEF3F0;
+    --text-primary: #0F1F18;
+    --text-secondary: #475A52;
+    --border-subtle: #DCE5E0;
+    --cbos-green: #064E3B;
+    --cbos-gold: #D4AF37;
+  }
+
+  .dark {
+    --bg-canvas: #06110D;
+    --bg-surface: #0B1E17;
+    --bg-surface-muted: #112A21;
+    --text-primary: #ECFDF5;
+    --text-secondary: #94B0A4;
+    --border-subtle: #19382C;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    margin: 0;
+  }
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.cbos-gradient {
+  background: linear-gradient(145deg, #04281B 0%, #064E3B 55%, #047857 100%);
+}
+
+.dark .cbos-gradient {
+  background: linear-gradient(145deg, #05261A 0%, #064E3B 55%, #08684D 100%);
+}
+
+.cbos-card-gradient {
+  background: linear-gradient(160deg, #031E14 0%, #064E3B 54%, #0A6E50 100%);
+}
+
+.cbos-savings-gradient {
+  background: linear-gradient(160deg, #1E1806 0%, #4A390A 52%, #7D6217 100%);
+}
+
+@keyframes scanSweep {
+  0%, 100% {
+    transform: translateY(0%);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(180px);
+    opacity: 1;
+  }
+}
+
+.animate-scan-sweep {
+  animation: scanSweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes nfcRipple {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.animate-nfc-ripple {
+  animation: nfcRipple 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scan-sweep,
+  .animate-nfc-ripple {
+    animation: none;
+  }
+}
